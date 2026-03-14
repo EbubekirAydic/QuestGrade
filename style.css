@@ -1,0 +1,106 @@
+:root {
+    --diamond: #b9f2ff;
+    --gold: #ffd700;
+    --silver: #c0c0c0;
+    --bronze: #cd7f32;
+    --coal: #3e3e3e;
+    --bg-dark: #0f0f1b;
+    --card-bg: #1a1a2e;
+    --accent: #e94560;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: white;
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+}
+
+/* --- Header & Search --- */
+header {
+    display: flex;
+    justify-content: space-between;
+    padding: 20px 5%;
+    background: rgba(26, 26, 46, 0.95);
+    backdrop-filter: blur(10px);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    border-bottom: 2px solid var(--accent);
+}
+
+.search-container input {
+    background: #16213e;
+    border: 1px solid var(--accent);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 25px;
+    width: 300px;
+    transition: 0.3s;
+}
+
+/* --- Tier List Styles --- */
+.tier-row {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 30px 0;
+    padding: 20px;
+    background: linear-gradient(90deg, transparent, var(--card-bg), transparent);
+}
+
+.tier-icon {
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+    filter: drop-shadow(0 0 10px currentColor);
+}
+
+.game-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    min-height: 120px;
+    width: 80%;
+    gap: 15px;
+    padding: 20px;
+    border: 2px dashed #333;
+    border-radius: 15px;
+}
+
+/* --- Game Cards --- */
+.game-card {
+    width: 100px;
+    height: 140px;
+    background-size: cover;
+    background-position: center;
+    border-radius: 8px;
+    cursor: grab;
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
+    border: 2px solid transparent;
+}
+
+.game-card:hover {
+    transform: scale(1.1) rotate(2deg);
+    border-color: var(--accent);
+    box-shadow: 0 0 20px var(--accent);
+}
+
+.game-card span {
+    font-size: 10px;
+    background: rgba(0,0,0,0.7);
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    text-align: center;
+}
+
+/* --- Recommendation Section --- */
+.recommendations {
+    margin-top: 50px;
+    padding: 40px;
+    background: #16213e;
+    text-align: center;
+    border-radius: 30px 30px 0 0;
+}

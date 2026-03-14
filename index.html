@@ -1,0 +1,29 @@
+<header>
+    <div class="logo">💎 QuestGrade</div>
+    <div class="search-container">
+        <input type="text" id="gameSearch" placeholder="Oyun ara ve ekle...">
+        <div id="searchResults" class="dropdown"></div>
+    </div>
+    <div class="user-controls">
+        <button id="loginBtn">Giriş Yap</button>
+    </div>
+</header>
+
+<main id="tierContainer">
+    <div class="tier-row" data-tier="diamond">
+        <div class="tier-icon" style="color: var(--diamond)">💎</div>
+        <div class="game-list" id="diamond-list"></div>
+    </div>
+
+    <div class="tier-row" data-tier="gold">
+        <div class="tier-icon" style="color: var(--gold)">🥇</div>
+        <div class="game-list" id="gold-list"></div>
+    </div>
+    
+    </main>
+
+<section class="recommendations">
+    <h3>Bu oyunları oynadın mı?</h3>
+    <div class="game-list" id="suggested-games">
+        </div>
+</section>
