@@ -1,29 +1,740 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuestGrade | Rank Your Journey</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    
+    <style>
+        :root {
+            --favorite: #ff0055; /* Favori oyun için neon pembe */
+            --diamond: #b9f2ff; --gold: #ffd700; --silver: #c0c0c0;
+            --bronze: #cd7f32; --coal: #3e3e3e; --plan: #5c85e7; /* Oynanacaklar için mavi */
+            --bg: #0b0b14; --card-bg: #161625; --accent: #6c5ce7;
+        }
+
+        body {
+            background-color: var(--bg); color: white;
+            font-family: 'Inter', sans-serif; margin: 0; overflow-x: hidden;
+        }
+
+        /* Header & Search */
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 5%; background: rgba(22, 22, 37, 0.9);
+            backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 1000;
+            border-bottom: 2px solid var(--accent);
+        }
+
+        .logo { font-weight: 900; font-size: 1.5rem; letter-spacing: -1px; cursor: pointer; }
+
+        .search-box { position: relative; width: 40%; }
+        #gameSearch {
+            width: 100%; padding: 12px 20px; border-radius: 30px;
+            border: none; background: #252538; color: white; outline: none;
+            transition: 0.3s;
+        }
+        #gameSearch:focus { box-shadow: 0 0 15px var(--accent); }
+
+        #searchResults {
+            position: absolute; width: 100%; background: #252538;
+            border-radius: 10px; margin-top: 5px; max-height: 400px;
+            overflow-y: auto; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            z-index: 1100;
+        }
+
+        .search-item {
+            display: flex; align-items: center; padding: 10px;
+            cursor: pointer; border-bottom: 1px solid #333;
+            transition: 0.2s;
+        }
+        .search-item:hover { background: var(--accent); transform: translateX(5px); }
+        .search-item img { width: 40px; height: 50px; object-fit: cover; margin-right: 15px; border-radius: 4px; }
+
+        /* Tier Rows */
+        .tier-container { padding: 40px 5%; }
+        .tier-row {
+            display: flex; flex-direction: column; align-items: center;
+            margin-bottom: 40px; width: 100%;
+        }
+
+        .tier-label {
+            font-size: 1rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px;
+            margin-bottom: 15px; padding: 5px 15px; border-radius: 20px;
+            background: rgba(255,255,255,0.05);
+            filter: drop-shadow(0 0 5px currentColor);
+        }
+
+        .game-list {
+            display: flex; flex-wrap: wrap; justify-content: center;
+            gap: 15px; min-height: 120px; width: 100%; max-width: 1000px;
+            padding: 20px; background: rgba(255,255,255,0.02);
+            border-radius: 20px; border: 2px dashed #2a2a40;
+            transition: 0.3s; position: relative;
+        }
+
+        /* --- HAVALI ANİMASYONLU ÖZEL CSS (Hover Durumu) --- */
+        
+        /* Ortak Animasyon Tanımı (RGB Işık Döngüsü) */
+        @keyframes rgbGlow {
+            0% { box-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000 inset; border-color: #ff0000; }
+            50% { box-shadow: 0 0 20px #ff0099, 0 0 40px #ff0099 inset; border-color: #ff0099; }
+            100% { box-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000 inset; border-color: #ff0000; }
+        }
+        /* Ortak Animasyon Tanımı (RGB Işık Döngüsü) */
+        @keyframes rgbGlowDiamond {
+            0% { box-shadow: 0 0 20px #00d5ff, 0 0 10px #00d5ff inset; border-color: #00d5ff; }
+            50% { box-shadow: 0 0 20px #0055ff, 0 0 10px #0055ff inset; border-color: #0055ff; }
+            100% { box-shadow: 0 0 20px #00d5ff, 0 0 10px #00d5ff inset; border-color: #00d5ff; }
+        }
+
+        /* EN SEVDİĞİM OYUN - Sadece tek oyun, pembe neon hover */
+        #favorite-row .game-list {
+            max-width: 150px; min-height: 180px; border-style: solid; border-color: #333;
+        }
+        #favorite-row:hover .game-list {
+            animation: rgbGlow 3s linear infinite;
+            filter: drop-shadow(0 0 15px var(--favorite));
+        }
+
+        /* ELMAS - Elmas mavisi neon hover */
+        #diamond-row:hover .game-list {
+            animation: rgbGlowDiamond 3s linear infinite;
+            filter: drop-shadow(0 0 15px var(--diamond));
+        }
+
+        /* Game Cards */
+        .game-card {
+            width: 110px; height: 155px; border-radius: 10px;
+            background-size: cover; background-position: center;
+            cursor: grab; position: relative; transition: 0.3s;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            border: 2px solid transparent;
+        }
+
+        #favorite-row .game-card { height: auto; width: 100%; }
+        .game-card:active { cursor: grabbing; }
+        .game-card:hover { transform: scale(1.1) rotate(2deg); z-index: 10; border-color: white; }
+        .game-card span {
+            position: absolute; bottom: 0; width: 100%; background: rgba(0,0,0,0.8);
+            font-size: 10px; text-align: center; padding: 5px 0; border-radius: 0 0 10px 10px;
+            pointer-events: none;
+        }
+
+        /* User Status */
+        #userStatus { font-size: 12px; color: var(--accent); font-weight: 700; }
+
+        /* Auth Modal (Glassmorphism) */
+        .modal { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 2000; }
+        .modal-backdrop { position: absolute; inset: 0; background: rgba(3,3,10,0.6); backdrop-filter: blur(6px); }
+        .modal-card {
+            position: relative; width: 420px; max-width: calc(100% - 40px);
+            background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+            border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6); backdrop-filter: blur(8px);
+        }
+        .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+        .tabs { display:flex; gap:8px; }
+        .tab { padding:8px 12px; border-radius:10px; cursor:pointer; color:#ddd; }
+        .tab.active { background: linear-gradient(90deg, rgba(108,92,231,0.18), rgba(108,92,231,0.08)); color: white; box-shadow: 0 6px 18px rgba(108,92,231,0.12); }
+        .auth-form { display:none; flex-direction:column; gap:10px; }
+        .auth-form.active { display:flex; }
+        .input { padding:10px 12px; border-radius:10px; border:none; background:#12121a; color:#fff; outline:none; }
+        .btn { padding:10px 14px; border-radius:12px; cursor:pointer; border:none; background: linear-gradient(90deg,var(--accent), #9b59ff); color:white; font-weight:700; }
+        .btn.ghost { background: transparent; border: 1px solid rgba(255,255,255,0.06); }
+        .google-btn { display:flex; align-items:center; gap:10px; justify-content:center; padding:10px; border-radius:12px; background: linear-gradient(90deg,#4285F4,#34A853); color:white; font-weight:700; border:none; cursor:pointer; }
+        .link { color: var(--accent); cursor:pointer; font-size: 13px; }
+        .hidden { display:none; }
+        .profile-area { display:flex; gap:10px; align-items:center; }
+        .avatar { width:34px; height:34px; border-radius:50%; background:#222; display:inline-flex; align-items:center; justify-content:center; font-weight:700; }
+        /* Quick Drop Panel (floating right-side) */
+        #quickDropPanel {
+            position: fixed; right: 14px; top: 50%; transform: translateY(-50%);
+            display: flex; flex-direction: column; gap:10px; padding:12px; border-radius:14px;
+            background: linear-gradient(180deg, rgba(20,20,30,0.6), rgba(10,10,20,0.45));
+            border: 1px solid rgba(108,92,231,0.12); backdrop-filter: blur(6px);
+            opacity: 0; pointer-events: none; transition: 220ms ease; z-index:1500;
+        }
+        #quickDropPanel.open { opacity: 1; pointer-events: auto; }
+        .quick-drop { width:52px; height:52px; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; font-size:20px; cursor:pointer; color:#ddd; background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.03); }
+        .quick-drop:hover { transform: scale(1.05); }
+        .quick-drop.highlight { box-shadow: 0 10px 30px rgba(108,92,231,0.36); background: linear-gradient(90deg, rgba(108,92,231,0.22), rgba(108,92,231,0.12)); color: white; transform: scale(1.08); border-color: rgba(108,92,231,0.6); }
+        /* While dragging, make Sortable ghost not intercept pointer events so elementFromPoint works */
+        body.dragging .sortable-ghost,
+        body.dragging .sortable-chosen {
+            pointer-events: none !important;
+        }
+    </style>
+</head>
+<body>
+
 <header>
     <div class="logo">💎 QuestGrade</div>
-    <div class="search-container">
-        <input type="text" id="gameSearch" placeholder="Oyun ara ve ekle...">
-        <div id="searchResults" class="dropdown"></div>
+    <div class="search-box">
+        <input type="text" id="gameSearch" placeholder="Oyun ara ve Oynanacaklar'a ekle...">
+        <div id="searchResults"></div>
     </div>
-    <div class="user-controls">
-        <button id="loginBtn">Giriş Yap</button>
+    <div id="userArea" class="profile-area">
+        <div id="userStatus">Giriş Yapılmadı</div>
+        <button id="authBtn" class="btn ghost">Giriş / Kayıt</button>
+    </div>
+    <div style="margin-left:12px;">
+        <button id="dataToolsBtn" class="btn ghost">Veri Araçları</button>
     </div>
 </header>
 
-<main id="tierContainer">
-    <div class="tier-row" data-tier="diamond">
-        <div class="tier-icon" style="color: var(--diamond)">💎</div>
-        <div class="game-list" id="diamond-list"></div>
-    </div>
-
-    <div class="tier-row" data-tier="gold">
-        <div class="tier-icon" style="color: var(--gold)">🥇</div>
-        <div class="game-list" id="gold-list"></div>
-    </div>
-    
-    </main>
-
-<section class="recommendations">
-    <h3>Bu oyunları oynadın mı?</h3>
-    <div class="game-list" id="suggested-games">
+<!-- Auth Modal -->
+<div id="authModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-backdrop" onclick="closeAuthModal()"></div>
+    <div class="modal-card" role="dialog" aria-modal="true">
+        <div class="modal-header">
+            <div style="font-weight:800;">QuestGrade • Hesap</div>
+            <div class="tabs">
+                <div id="tab-login" class="tab active" onclick="switchTab('login')">Giriş Yap</div>
+                <div id="tab-register" class="tab" onclick="switchTab('register')">Kayıt Ol</div>
+            </div>
         </div>
-</section>
+
+        <form id="loginForm" class="auth-form active">
+            <input id="loginEmail" class="input" type="email" placeholder="E-posta">
+            <input id="loginPass" class="input" type="password" placeholder="Şifre">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <button class="btn" type="submit">Giriş Yap</button>
+                <a class="link" onclick="resetPasswordPrompt()">Şifremi Unuttum</a>
+            </div>
+            <div style="margin-top:8px;">
+                <button type="button" class="google-btn" onclick="googleSignIn()">Google ile Devam Et</button>
+            </div>
+        </form>
+
+        <form id="registerForm" class="auth-form">
+            <input id="regEmail" class="input" type="email" placeholder="E-posta">
+            <input id="regPass" class="input" type="password" placeholder="Şifre (6+ karakter)">
+            <button class="btn" type="submit">Kayıt Ol</button>
+            <div style="margin-top:8px;">
+                <button type="button" class="google-btn" onclick="googleSignIn()">Google ile Devam Et</button>
+            </div>
+        </form>
+        <div style="margin-top:12px; display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-size:12px; color:#aaa;">Firebase ile güvenli oturum</div>
+            <button class="btn ghost" onclick="closeAuthModal()">Kapat</button>
+        </div>
+    </div>
+</div>
+
+        <!-- Quick Drop Panel -->
+        <div id="quickDropPanel" aria-hidden="true">
+            <div class="quick-drop" data-target="favorite" title="En Sevdiğim">💖</div>
+            <div class="quick-drop" data-target="diamond" title="Elmas">💎</div>
+            <div class="quick-drop" data-target="gold" title="Altın">🥇</div>
+            <div class="quick-drop" data-target="silver" title="Gümüş">🥈</div>
+            <div class="quick-drop" data-target="bronze" title="Bronz">🥉</div>
+            <div class="quick-drop" data-target="coal" title="Kömür">🌑</div>
+            <div class="quick-drop" data-target="plan" title="Oynanacaklar">⏳</div>
+        </div>
+
+<!-- Data Tools Panel -->
+<div id="dataToolsPanel" class="modal hidden" style="align-items:flex-start;">
+    <div class="modal-backdrop" onclick="toggleDataTools(false)"></div>
+    <div class="modal-card" style="width: 520px; max-height:80vh; overflow:auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <div style="font-weight:800;">Veri Araçları</div>
+            <button class="btn ghost" onclick="toggleDataTools(false)">Kapat</button>
+        </div>
+
+        <div style="display:flex; gap:8px; margin-bottom:10px;">
+            <button id="exportCopyBtn" class="btn" onclick="exportCopy()">Veriyi Kopyala</button>
+            <button id="exportDownloadBtn" class="btn" onclick="exportDownload()">Veriyi İndir</button>
+        </div>
+
+        <div style="margin-bottom:8px;">
+            <label style="font-size:13px; color:#bbb;">JSON Yapıştır / Düzenle</label>
+            <textarea id="importTextarea" style="width:100%; height:140px; margin-top:6px; background:#0e0e14; color:#fff; border-radius:8px; padding:8px; border:1px solid rgba(255,255,255,0.04);"></textarea>
+        </div>
+
+        <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+            <input id="importFile" type="file" accept="application/json">
+            <label class="link" for="importFile">.json dosyası yükle</label>
+        </div>
+
+        <div style="display:flex; gap:12px; align-items:center; margin-bottom:8px;">
+            <label><input type="radio" name="importMode" value="overwrite" checked> Üzerine Yaz</label>
+            <label><input type="radio" name="importMode" value="merge"> Üstüne Ekle (Oynanacaklar'a)</label>
+        </div>
+
+        <div style="display:flex; gap:8px;">
+            <button id="importBtn" class="btn" onclick="importData()">Veriyi Yükle</button>
+            <div id="importStatus" style="color:#9bd; font-size:13px; align-self:center;"></div>
+        </div>
+    </div>
+</div>
+
+<div class="tier-container">
+    <div class="tier-row" id="favorite-row">
+        <div class="tier-label" style="color:var(--favorite)">💖 EN SEVDİĞİM OYUN</div>
+        <div class="game-list" id="favorite"></div>
+    </div>
+
+    <div class="tier-row" id="diamond-row"><div class="tier-label" style="color:var(--diamond)">💎 Elmas</div><div class="game-list" id="diamond"></div></div>
+    <div class="tier-row"><div class="tier-label" style="color:var(--gold)">🥇 Altın</div><div class="game-list" id="gold"></div></div>
+    <div class="tier-row"><div class="tier-label" style="color:var(--silver)">🥈 Gümüş</div><div class="game-list" id="silver"></div></div>
+    <div class="tier-row"><div class="tier-label" style="color:var(--bronze)">🥉 Bronz</div><div class="game-list" id="bronze"></div></div>
+    <div class="tier-row"><div class="tier-label" style="color:var(--coal)">🌑 Kömür</div><div class="game-list" id="coal"></div></div>
+
+    <div class="tier-row">
+        <div class="tier-label" style="color:var(--plan)">⏳ OYNANACAKLAR (Yeni Eklenenler)</div>
+        <div class="game-list" id="plan"></div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import {
+        getAuth,
+        GoogleAuthProvider,
+        signInWithPopup,
+        createUserWithEmailAndPassword,
+        signInWithEmailAndPassword,
+        sendPasswordResetEmail,
+        signOut,
+        onAuthStateChanged,
+        signInAnonymously
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBxILbGzcok0SVRen0ealGw60gpVmYYS6Q",
+        authDomain: "sengorelektirik.firebaseapp.com",
+        databaseURL: "https://sengorelektirik-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "sengorelektirik",
+        storageBucket: "sengorelektirik.firebasestorage.app",
+        messagingSenderId: "117761332611",
+        appId: "1:117761332611:web:99a7b1449a47e46ecdd2b6"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+    const provider = new GoogleAuthProvider();
+    const rawgKey = "5ef134380f234975a89e1d7e51b0346c";
+
+    let userId = null;
+    let lastLog = 0;
+
+    // Ensure we sign in anonymously by default to preserve existing anonymous user data
+    signInAnonymously(auth).catch(err => {
+        // ignore if anonymous not allowed; will wait for explicit sign-in
+        console.warn('Anon sign-in hata (göz ardı ediliyor):', err && err.message);
+    });
+
+    // UI element refs
+    const authBtn = document.getElementById('authBtn');
+    const userStatus = document.getElementById('userStatus');
+    authBtn.addEventListener('click', () => openAuthModal());
+
+    function updateUI(user) {
+        if (user) {
+            userId = user.uid;
+            const name = user.displayName || user.email || 'Kullanıcı';
+            userStatus.innerText = name;
+            authBtn.innerText = 'Çıkış Yap';
+            authBtn.onclick = () => signOutUser();
+        } else {
+            userId = null;
+            userStatus.innerText = 'Giriş Yapılmadı';
+            authBtn.innerText = 'Giriş / Kayıt';
+            authBtn.onclick = () => openAuthModal();
+            // Clear lists locally if needed
+        }
+    }
+
+    onAuthStateChanged(auth, (user) => {
+        updateUI(user);
+        if (user) loadUserData();
+    });
+
+    // Modal controls
+    function openAuthModal() { document.getElementById('authModal').classList.remove('hidden'); }
+    window.closeAuthModal = function () { document.getElementById('authModal').classList.add('hidden'); }
+    window.switchTab = function (t) {
+        document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+        document.getElementById('tab-' + t).classList.add('active');
+        document.getElementById(t + 'Form').classList.add('active');
+    }
+
+    // Auth handlers
+    async function googleSignIn() {
+        try {
+            await signInWithPopup(auth, provider);
+            closeAuthModal();
+        } catch (err) { console.error('Google sign-in hata:', err); alert('Google ile giriş başarısız. Konsolu kontrol et.'); }
+    }
+    window.googleSignIn = googleSignIn;
+
+    // Register
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('regEmail').value;
+        const pass = document.getElementById('regPass').value;
+        try {
+            await createUserWithEmailAndPassword(auth, email, pass);
+            closeAuthModal();
+        } catch (err) { console.error('Kayıt hatası:', err); alert(err.message); }
+    });
+
+    // Login
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('loginEmail').value;
+        const pass = document.getElementById('loginPass').value;
+        try {
+            await signInWithEmailAndPassword(auth, email, pass);
+            closeAuthModal();
+        } catch (err) { console.error('Giriş hatası:', err); alert(err.message); }
+    });
+
+    // Password reset
+    window.resetPasswordPrompt = function () {
+        const email = prompt('Şifrenizi sıfırlamak için kayıtlı e-posta adresinizi girin:');
+        if (!email) return;
+        sendPasswordResetEmail(auth, email).then(() => alert('Şifre sıfırlama e-postası gönderildi.'))
+            .catch(err => { console.error('Reset hata:', err); alert(err.message); });
+    }
+
+    async function signOutUser() {
+        try { await signOut(auth); updateUI(null); } catch (err) { console.error('Çıkış hatası:', err); }
+    }
+    window.signOutUser = signOutUser;
+
+    // 2. Drag & Drop Kurulumu
+    const tiers = ['favorite', 'diamond', 'gold', 'silver', 'bronze', 'coal', 'plan'];
+    // Quick-drop panel state
+    const quickPanel = document.getElementById('quickDropPanel');
+    let currentDragged = null;
+    let hoveredTarget = null;
+
+    function showQuickPanel() { quickPanel.classList.add('open'); /* force layout so bounding rects are ready */ quickPanel.getBoundingClientRect(); }
+    function hideQuickPanel() { quickPanel.classList.remove('open'); hoveredTarget = null; document.querySelectorAll('.quick-drop').forEach(d => d.classList.remove('highlight')); }
+
+    // track pointer during drag to highlight targets using bounding boxes (more reliable than elementFromPoint)
+    function onDragMove(e) {
+        const x = (e.clientX !== undefined) ? e.clientX : (e.touches && e.touches[0] && e.touches[0].clientX);
+        const y = (e.clientY !== undefined) ? e.clientY : (e.touches && e.touches[0] && e.touches[0].clientY);
+        if (x == null || y == null) return;
+        // store last pointer
+        window.__qdp_lastPointer = { x, y };
+        const drops = Array.from(document.querySelectorAll('.quick-drop'));
+        let found = null;
+        const PAD = 30; // expand hit area
+        // If pointer is near right edge, prefer nearest-by-vertical-position detection (more forgiving)
+        const edgeThreshold = window.innerWidth - 140;
+        if (x >= edgeThreshold) {
+            // find nearest quick-drop by vertical center distance
+            let best = null; let bestDist = Infinity;
+            for (const d of drops) {
+                const dr = d.getBoundingClientRect();
+                const cy = dr.top + dr.height/2;
+                const dist = Math.abs(y - cy);
+                if (dist < bestDist) { bestDist = dist; best = d; }
+            }
+            if (best && bestDist < 120) found = best;
+        } else {
+            for (const d of drops) {
+                const r = d.getBoundingClientRect();
+                if (x >= r.left - PAD && x <= r.right + PAD && y >= r.top - PAD && y <= r.bottom + PAD) { found = d; break; }
+            }
+        }
+        // debug log for detection
+        // console.debug('quick-drop move', { x, y, found: found && found.dataset && found.dataset.target });
+        if (found) {
+            if (hoveredTarget !== found) {
+                hoveredTarget = found;
+                drops.forEach(d => d.classList.remove('highlight'));
+                found.classList.add('highlight');
+                console.log('quick-drop: hovered', { target: found.dataset.target, rect: found.getBoundingClientRect(), pointer:{x,y} });
+            }
+        } else {
+            if (hoveredTarget) { hoveredTarget.classList.remove('highlight'); hoveredTarget = null; }
+        }
+    }
+
+    // RAF-based tracker (more reliable): checks the ghost's center against quick-drop targets
+    let rafId = null;
+    function trackDragFrame() {
+        const ghost = document.querySelector('.sortable-ghost') || currentDragged;
+        if (!ghost) { rafId = requestAnimationFrame(trackDragFrame); return; }
+        const r = ghost.getBoundingClientRect();
+        const cx = r.left + r.width/2;
+        const cy = r.top + r.height/2;
+        const drops = Array.from(document.querySelectorAll('.quick-drop'));
+        let found = null;
+        const PAD = 30;
+        // detect and collect rects for debug
+        const debugRects = [];
+        for (const d of drops) {
+            const dr = d.getBoundingClientRect();
+            debugRects.push({ target: d.dataset.target, left: dr.left, top: dr.top, right: dr.right, bottom: dr.bottom, width: dr.width, height: dr.height });
+            if (cx >= dr.left - PAD && cx <= dr.right + PAD && cy >= dr.top - PAD && cy <= dr.bottom + PAD) { found = d; break; }
+        }
+        // Throttled debug log
+        const now = Date.now();
+        if (now - lastLog > 200) {
+            console.log('quick-drop: raf', { ghostRect: r, center: { x: cx, y: cy }, debugRects, found: found && found.dataset && found.dataset.target });
+            lastLog = now;
+        }
+        if (found) {
+            if (hoveredTarget !== found) {
+                hoveredTarget = found; drops.forEach(d => d.classList.remove('highlight')); found.classList.add('highlight');
+                console.log('quick-drop: hovered(raf)', { target: found.dataset.target });
+            }
+        } else {
+            if (hoveredTarget) { hoveredTarget.classList.remove('highlight'); hoveredTarget = null; }
+        }
+        rafId = requestAnimationFrame(trackDragFrame);
+    }
+
+    tiers.forEach(id => {
+        const listEl = document.getElementById(id);
+        new Sortable(listEl, {
+            group: 'shared',
+            animation: 150,
+            scroll: true,
+            scrollSensitivity: 100,
+            scrollSpeed: 20,
+            fallbackOnBody: true,
+            swapThreshold: 0.65,
+            onStart: function (evt) {
+                currentDragged = evt.item;
+                // disable pointer events on dragged element so elementFromPoint can hit targets
+                try { evt.item.style.pointerEvents = 'none'; } catch (e) {}
+                // add global dragging class so Sortable helper (ghost) won't block pointer events
+                document.body.classList.add('dragging');
+                console.log('quick-drop: drag start', { item: evt.item });
+                showQuickPanel();
+                // start RAF tracker
+                if (rafId) cancelAnimationFrame(rafId);
+                rafId = requestAnimationFrame(trackDragFrame);
+                // keep pointer listeners as fallback
+                document.addEventListener('mousemove', onDragMove);
+                document.addEventListener('pointermove', onDragMove);
+                document.addEventListener('touchmove', onDragMove, { passive: true });
+            },
+            onEnd: function (evt) {
+                // if user released over quick panel target, move there
+                console.log('quick-drop: drag end hovered=', hoveredTarget && hoveredTarget.dataset && hoveredTarget.dataset.target);
+                if (hoveredTarget && currentDragged) {
+                    const targetId = hoveredTarget.dataset.target;
+                    const targetList = document.getElementById(targetId);
+                    if (targetId === 'favorite' && targetList.children.length > 0) {
+                        const old = targetList.children[0];
+                        document.getElementById('plan').appendChild(old);
+                    }
+                    targetList.appendChild(currentDragged);
+                }
+                // restore pointer events
+                try { if (currentDragged) currentDragged.style.pointerEvents = ''; } catch (e) {}
+                // remove global dragging class
+                document.body.classList.remove('dragging');
+                // stop RAF tracker
+                if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+                currentDragged = null;
+                document.removeEventListener('mousemove', onDragMove);
+                document.removeEventListener('pointermove', onDragMove);
+                document.removeEventListener('touchmove', onDragMove);
+                hideQuickPanel();
+                saveUserData();
+            },
+            onAdd: function (evt) {
+                if (id === 'favorite' && listEl.children.length > 1) {
+                    const oldGame = listEl.children[0];
+                    document.getElementById('plan').appendChild(oldGame);
+                }
+            }
+        });
+    });
+
+    // 3. RAWG Arama Motoru
+    const searchInput = document.getElementById('gameSearch');
+    const resultsDiv = document.getElementById('searchResults');
+
+    searchInput.addEventListener('input', async (e) => {
+        const query = e.target.value;
+        if (query.length < 3) { resultsDiv.style.display = 'none'; return; }
+
+        try {
+            const res = await fetch(`https://api.rawg.io/api/games?key=${rawgKey}&search=${query}&page_size=6`);
+            const data = await res.json();
+
+            resultsDiv.innerHTML = data.results.map(game => `
+                <div class="search-item" onclick="addGame('${game.background_image || ''}', '${game.name.replace(/'/g, "")}')">
+                    <img src="${game.background_image || ''}" onerror="this.src='https://via.placeholder.com/40x50?text=No+Img'">
+                    <span>${game.name}</span>
+                </div>
+            `).join('');
+            resultsDiv.style.display = 'block';
+        } catch (err) { console.error("Arama hatası:", err); }
+    });
+
+    window.addGame = (img, name) => {
+        const card = createGameCard(img, name);
+        document.getElementById('plan').appendChild(card);
+        resultsDiv.style.display = 'none';
+        searchInput.value = '';
+        saveUserData();
+    };
+
+    function createGameCard(img, name) {
+        const div = document.createElement('div');
+        div.className = 'game-card';
+        div.style.backgroundImage = `url(${img})`;
+        div.dataset.name = name;
+        div.dataset.img = img;
+        div.innerHTML = img ? `<span>${name}</span>` : `<div style="padding:10px; font-size:12px;">${name}</div>`;
+        if (!img) div.style.backgroundColor = '#333';
+        return div;
+    }
+
+    // 4. Veri Kaydetme ve Yükleme
+    function saveUserData() {
+        if (!userId) return;
+        const data = {};
+        tiers.forEach(tier => {
+            const games = Array.from(document.getElementById(tier).children).map(card => ({
+                name: card.dataset.name,
+                img: card.dataset.img
+            }));
+            data[tier] = games;
+        });
+        set(ref(db, 'users/' + userId), data).catch(err => console.error("Kaydetme hatası:", err));
+    }
+
+    function loadUserData() {
+        if (!userId) return;
+        onValue(ref(db, 'users/' + userId), (snapshot) => {
+            const data = snapshot.val();
+            if (!data) return;
+            tiers.forEach(tier => {
+                const list = document.getElementById(tier);
+                list.innerHTML = '';
+                if (data[tier]) {
+                    data[tier].forEach(game => {
+                        list.appendChild(createGameCard(game.img, game.name));
+                    });
+                }
+            });
+        }, { onlyOnce: true });
+    }
+
+    /* ----------------------- Data Export / Import ----------------------- */
+    function getCurrentDataObject() {
+        const obj = {};
+        tiers.forEach(tier => {
+            obj[tier] = Array.from(document.getElementById(tier).children).map(c => ({ name: c.dataset.name, img: c.dataset.img }));
+        });
+        return obj;
+    }
+
+    async function exportCopy() {
+        try {
+            const json = JSON.stringify(getCurrentDataObject(), null, 2);
+            await navigator.clipboard.writeText(json);
+            document.getElementById('importStatus').innerText = 'JSON panoya kopyalandı.';
+        } catch (err) { console.error('Kopyala hata:', err); alert('Panoya kopyalanamadı.'); }
+    }
+
+    function exportDownload() {
+        const json = JSON.stringify(getCurrentDataObject(), null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'questgrade_yedek.json'; document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+        document.getElementById('importStatus').innerText = 'İndirme başlatıldı.';
+    }
+
+    document.getElementById('dataToolsBtn').addEventListener('click', () => toggleDataTools(true));
+    function toggleDataTools(show) { const el = document.getElementById('dataToolsPanel'); if (show) el.classList.remove('hidden'); else el.classList.add('hidden'); }
+
+    // Expose to global for inline onclick handlers inside HTML (module scope is isolated)
+    window.toggleDataTools = toggleDataTools;
+    window.exportCopy = exportCopy;
+    window.exportDownload = exportDownload;
+    window.importData = importData;
+
+    // File input handling
+    document.getElementById('importFile').addEventListener('change', async (e) => {
+        const f = e.target.files[0]; if (!f) return;
+        try {
+            const txt = await f.text();
+            document.getElementById('importTextarea').value = txt;
+            document.getElementById('importStatus').innerText = 'Dosya yüklendi. Önizleyin ve "Veriyi Yükle"ye basın.';
+        } catch (err) { console.error('Dosya okuma hata:', err); alert('Dosya okunamadı.'); }
+    });
+
+    function validateDataShape(obj) {
+        if (typeof obj !== 'object' || obj === null) return false;
+        for (const t of tiers) {
+            if (!(t in obj)) return false;
+            if (!Array.isArray(obj[t])) return false;
+            for (const item of obj[t]) {
+                if (typeof item !== 'object' || !('name' in item)) return false;
+            }
+        }
+        return true;
+    }
+
+    function importData() {
+        const txt = document.getElementById('importTextarea').value.trim();
+        if (!txt) { alert('Lütfen JSON yapısını yapıştırın veya bir dosya yükleyin.'); return; }
+        let parsed;
+        try { parsed = JSON.parse(txt); } catch (err) { alert('Geçersiz JSON. Lütfen doğru formatta veriyi yapıştırın.'); return; }
+
+        // Two modes: overwrite or merge
+        const mode = document.querySelector('input[name="importMode"]:checked').value;
+        if (mode === 'overwrite') {
+            // Validate structure first; if it's missing tiers but has arrays, try to normalize
+            if (!validateDataShape(parsed)) {
+                // Try to accept flat structure with tier keys missing: reject for safety
+                alert('JSON yapısı beklenen formatta değil. Üzerine yazma işlemi için tüm tier anahtarları gereklidir.');
+                return;
+            }
+            // Apply to UI
+            tiers.forEach(tier => {
+                const list = document.getElementById(tier); list.innerHTML = '';
+                parsed[tier].forEach(g => list.appendChild(createGameCard(g.img || '', g.name || '')));
+            });
+            saveUserData();
+            document.getElementById('importStatus').innerText = 'Veri üzerine yazıldı ve kaydedildi.';
+            toggleDataTools(false);
+        } else {
+            // merge -> add all incoming games into 'plan' (Oynanacaklar)
+            let added = 0;
+            // Accept both full object and arrays
+            if (Array.isArray(parsed)) {
+                parsed.forEach(g => { document.getElementById('plan').appendChild(createGameCard(g.img || '', g.name || '')); added++; });
+            } else if (validateDataShape(parsed)) {
+                tiers.forEach(tier => {
+                    parsed[tier].forEach(g => { document.getElementById('plan').appendChild(createGameCard(g.img || '', g.name || '')); added++; });
+                });
+            } else {
+                // If object with arbitrary keys, try to collect all nested arrays
+                for (const k in parsed) {
+                    const arr = parsed[k];
+                    if (Array.isArray(arr)) arr.forEach(g => { if (g && g.name) { document.getElementById('plan').appendChild(createGameCard(g.img || '', g.name)); added++; } });
+                }
+            }
+            if (added === 0) { alert('İçe aktarılacak oyun bulunamadı veya JSON beklenen yapıdan farklı.'); return; }
+            saveUserData();
+            document.getElementById('importStatus').innerText = `İçe aktarıldı: ${added} oyun Oynanacaklar'a eklendi.`;
+            toggleDataTools(false);
+        }
+    }
+
+    /* ----------------------- End Data Tools ----------------------- */
+</script>
+
+</body>
+</html>
